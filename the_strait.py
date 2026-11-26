@@ -8,6 +8,8 @@ from land import make_land
 from bullet import Bullet
 from shaheb import Shaheb
 from pt_boat import Pt_Boat
+from missile import Missile
+from health_Bar import HealthBar
 #import some functionality stuff
 #this class will make the settings that we need in order to make the game actually start running
 class TheStrait:
@@ -26,17 +28,19 @@ class TheStrait:
         pg.display.set_caption('The Strait')
         #adding my destroyer
         self.destroyer = Destroyer(self, 550, 500, 0)
+        self.health_bar = HealthBar()
         #adding my bullets as a sprite group
         self.bullets = pg.sprite.Group()
         self.shaheb = pg.sprite.Group()
         self.pt_boat = pg.sprite.Group()
-        self.explosion = pg.sprite.Group()
+        self.missiles = pg.sprite.Group()
         
         self.bg_color = (self.settings.bg_color)
         self.font_color = (self.settings.font_color)
         self.start_bg = pg.image.load(r'background.jpg')
         self.lose_bg = pg.image.load(r'lose_bg.jpg')
-        #self.main_font = pg.font.Font(r'orange juice.ttf', size=80)
+        
+        
         
         
     def start_screen(self):
@@ -70,7 +74,7 @@ class TheStrait:
         running = 1
         strait = make_land()
         #ship speed
-        fwd_spd = 5  
+        fwd_spd = 4   
         bg_y = self.settings.screen_height - 29000
         #will go up after every frame and manages when my shahebs spawn
         spawn_timer = 0
@@ -105,6 +109,8 @@ class TheStrait:
                         self.destroyer.go_left = 0
                     if e.key == pg.K_SPACE:
                         self.bullets.add(Bullet(self.destroyer, self.destroyer.theta))
+                    if e.key == pg.K_e:
+                        self.missiles.add(Missile(self.destroyer, self.destroyer.theta))
                         
                         
             if bg_y < 0:
@@ -117,10 +123,11 @@ class TheStrait:
                     
             #my spawn timer
             spawn_timer += 1
-            if spawn_timer >=100:
+            if spawn_timer >=200:
                 #im just going to pass in self to the shaheb class call so it automatically grabs all the values that it needs
                 self.shaheb.add(Shaheb(self))
                 spawn_timer = 0
+                
             boat_spawn_timer += 1
             if boat_spawn_timer >=300:
                 self.pt_boat.add(Pt_Boat(self))
@@ -132,32 +139,45 @@ class TheStrait:
                 ### Updating Section # drawing things and flipping the screen ###
             self.destroyer.update()
             self.bullets.update()
-            # my bullets collsions, call the groupcollide then the bullets + shaheb and then true, true so they both disappear
-            pg.sprite.groupcollide(self.bullets, self.shaheb, True, True)
-            pg.sprite.groupcollide(self.bullets, self.pt_boat, True, True)
+            self.missiles.update()
             self.shaheb.update()
             self.pt_boat.update()
+            # my bullets collsions, call the groupcollide then the bullets + shaheb and then true, true so they both disappear
+            pg.sprite.groupcollide(self.bullets, self.shaheb, True, True)
+            pg.sprite.groupcollide(self.missiles, self.pt_boat, True, True)
+            # my dron/boat collsions on the boat, use sprite collide bc the destroyer is not a group
+            if pg.sprite.spritecollide(self.destroyer, self.shaheb, True):
+                self.health_bar.decrement(15)
+            if pg.sprite.spritecollide(self.destroyer, self.pt_boat, True):
+                self.health_bar.decrement(30)
+            
+            if self.health_bar.health <= 0:
+                sleep(1)
+                running = 0 
             self.screen.fill(self.bg_color)
             self.screen.blit(strait,(0,bg_y))
             # draw the bullets
             self.bullets.draw(self.screen)
+            self.missiles.draw(self.screen)
             #draw the drones
             self.shaheb.draw(self.screen)
             #draw the boats
             self.pt_boat.draw(self.screen)
                 # draw the ship
             self.destroyer.draw_ship()
-            if pg.sprite.spritecollide(self.destroyer, self.shaheb, True):
-                self.explosion.draw(self.screen)
+            #draw the health bar
+            self.health_bar.draw(self.screen)
             pg.display.flip()
                 #frames
             self.clock.tick(60)
     def losing_screen(self):
+        main_surf = pg.font.Font.render(self.main_font,'YOU LOST\n MISSION FAILED',True, self.font_color)
         while 1:
             for e in pg.event.get():
                 if e.type == pg.QUIT:
                     sys.exit()
             self.screen.blit(self.lose_bg,(-50, -300))
+            self.screen.blit(main_surf, (200,300))
             pg.display.flip()
             
 if __name__ == '__main__':
