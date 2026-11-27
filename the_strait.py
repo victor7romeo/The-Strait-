@@ -62,7 +62,6 @@ class TheStrait:
             for e in pg.event.get():
                 if e.type == pg.KEYDOWN:
                     if e.key == pg.K_SPACE:
-                        pg.mixer.music.stop()
                         running = 0
                         
             self.screen.blit(self.start_bg,(-50,-200))
